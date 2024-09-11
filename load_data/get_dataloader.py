@@ -1,5 +1,6 @@
 from torch.utils.data import DataLoader, Dataset
 
+from load_data.cifar10 import getCIFAR10Dataset
 from load_data.cifar100 import getCIFAR100Dataset
 from load_data.mnist import getMnistDataset
 
@@ -59,6 +60,8 @@ def getDataloader(
         d = getMnistDataset(phase, img_size, norm_type)
     if dataset_name == "cifar100":
         d = getCIFAR100Dataset(phase, img_size, norm_type)
+    if dataset_name == "cifar10":
+        d = getCIFAR10Dataset(phase, img_size, norm_type)
     else:
         raise RuntimeError(f"dataset_name: {dataset_name} is invalid")
 

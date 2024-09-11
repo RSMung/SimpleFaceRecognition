@@ -9,7 +9,6 @@ import torch
 class Resnet18(nn.Module):
     def __init__(self):
         super().__init__()
-        # self.in_conv = nn.Conv2d(1, 3, 1)
         self.backbone = vmodels.resnet18(pretrained=True)
         # self.backbone = vmodels.resnet18(pretrained=False)
         self.backbone.fc = nn.Linear(
@@ -19,8 +18,6 @@ class Resnet18(nn.Module):
         self.feats_dim = self.backbone.fc.in_features
 
     def forward(self, x):
-        # print(x.shape)
-        # x = self.in_conv(x)
         x = self.backbone(x)
         return x
     
@@ -37,51 +34,26 @@ class Resnet18_softmax(nn.Module):
         )
         self.softmax = nn.Softmax(-1)
 
+    def get_feats(self, x):
+        x = self.backbone.conv1(x)
+        x = self.backbone.bn1(x)
+        x = self.backbone.relu(x)
+        x = self.backbone.maxpool(x)
+
+        x = self.backbone.layer1(x)
+        x = self.backbone.layer2(x)
+        x = self.backbone.layer3(x)
+        x = self.backbone.layer4(x)
+
+        x = self.backbone.avgpool(x)
+        x = torch.flatten(x, 1)
+        return x
+    
     def forward(self, x):
-        # print(x.shape)
-        # x = self.in_conv(x)
         x = self.backbone(x)
         x = self.softmax(x)
         return x
     
-
-class Resnet34(nn.Module):
-    def __init__(self, n_class):
-        super().__init__()
-        # self.in_conv = nn.Conv2d(1, 3, 1)
-        self.backbone = vmodels.resnet34(pretrained=False)
-        self.backbone.fc = nn.Linear(
-            in_features=self.backbone.fc.in_features,
-            out_features=n_class
-        )
-        # self.softmax = nn.Softmax(-1)
-
-    def forward(self, x):
-        # print(x.shape)
-        # x = self.in_conv(x)
-        x = self.backbone(x)
-        # x = self.softmax(x)
-        return x
-    
-
-class Resnet50(nn.Module):
-    def __init__(self, n_class) -> None:
-        super().__init__()
-        # self.in_conv = nn.Conv2d(1, 3, 1)
-        # self.backbone = vmodels.resnet50(pretrained=True)
-        self.backbone = vmodels.resnet50(pretrained=False)
-        self.backbone.fc = nn.Linear(
-            in_features=self.backbone.fc.in_features,
-            out_features=n_class
-        )
-        # self.softmax = nn.Softmax(-1)
-
-    def forward(self, x):
-        # print(x.shape)
-        # x = self.in_conv(x)
-        x = self.backbone(x)
-        # x = self.softmax(x)
-        return x
     
 # a = vmodels.resnet18(pretrained=False)
 # print(a)

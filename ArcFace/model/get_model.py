@@ -5,7 +5,7 @@ import os
 
 from ArcFace.model.arcface import ArcFaceLoss
 from global_utils import get_rootdir_path
-from ArcFace.model.resnet import Resnet18, Resnet18_softmax, Resnet34, Resnet50
+from ArcFace.model.resnet import Resnet18, Resnet18_softmax
 
 
 

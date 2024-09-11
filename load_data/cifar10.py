@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 
 
-class CIFAR100(vdataset.CIFAR100):
+class CIFAR10(vdataset.CIFAR10):
     def __init__(
         self,
         img_size,
@@ -18,8 +18,9 @@ class CIFAR100(vdataset.CIFAR100):
         transform: Optional[Callable] = None,
         target_transform: Optional[Callable] = None,
         download: bool = False,
+        # download: bool = True,
     ) -> None:
-        root = os.path.join('/home', 'RSMung', 'data', 'cifar100')
+        root = os.path.join('/home', 'RSMung', 'data', 'cifar10')
         super().__init__(root, train, transform, target_transform, download)
         if norm_type == "n1":
             # transfer learning
@@ -55,13 +56,15 @@ def stratified_split(dataset, num_classes=100, train_per_class=400, val_per_clas
     v.(使)分层，成层
     """
     # 检查是否有idx文件
-    train_indices_path = "cifar100_train_indices.npy"
-    val_indices_path = "cifar100_val_indices.npy"
+    train_indices_path = "cifar10_train_indices.npy"
+    val_indices_path = "cifar10_val_indices.npy"
     if os.path.exists(train_indices_path) and os.path.exists(val_indices_path):
         # 存在保存的idx文件，直接加载使用
+        print(f"检测到保存的train与val的idx文件，直接加载使用")
         train_indices = np.load(train_indices_path).tolist()
         val_indices = np.load(val_indices_path).tolist()
     else:
+        print(f"无train与val的idx文件，需要临时划分")
         # 获取idx
         train_indices = []
         val_indices = []
@@ -90,16 +93,16 @@ def stratified_split(dataset, num_classes=100, train_per_class=400, val_per_clas
     return train_dataset, val_dataset
 
 
-def getCIFAR100Dataset(phase, img_size, norm_type):
+def getCIFAR10Dataset(phase, img_size, norm_type):
     if phase == 'test':
         # 10000, [1, 32, 32]   -> [1, 128, 128]
-        target_dataset = CIFAR100(
+        target_dataset = CIFAR10(
             img_size=img_size,
             norm_type=norm_type,
             train=False
         )
     else:
-        train_val_dataset = CIFAR100(
+        train_val_dataset = CIFAR10(
             img_size=img_size,
             norm_type=norm_type,
             train=True
@@ -107,11 +110,11 @@ def getCIFAR100Dataset(phase, img_size, norm_type):
     
         train_part = 4
         val_part = 1
-        total_per_classes = 500
-        train_per_class = int(total_per_classes * (train_part / (train_part + val_part)))  # 400
-        val_per_class = total_per_classes - train_per_class  # 100
+        total_per_classes = 5000
+        train_per_class = int(total_per_classes * (train_part / (train_part + val_part)))  # 4000
+        val_per_class = total_per_classes - train_per_class  # 1000
 
-        num_classes=100
+        num_classes=10
         train_dataset, val_dataset = stratified_split(
             train_val_dataset, 
             num_classes=num_classes, 
@@ -136,12 +139,12 @@ if __name__ == "__main__":
     # phase = "val"
     img_size = 128
     norm_type = "n1"
-    d = getCIFAR100Dataset(phase, img_size, norm_type)
+    d = getCIFAR10Dataset(phase, img_size, norm_type)
     print(len(d))
     
     # # 检查每个类别拥有的数据数量
-    # flag = torch.zeros((100))
+    # flag = torch.zeros((10))
     # for img, label in iter(d):
     #     flag[label] += 1
-    # for i in range(100):
+    # for i in range(10):
     #     print(f"类别 {i} 的图像有 {flag[i]} 张")
