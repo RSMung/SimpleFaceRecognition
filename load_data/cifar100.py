@@ -3,7 +3,7 @@ import torchvision.datasets as vdataset
 import torchvision.transforms as vtransform
 import os
 import torch
-# from torch.utils.data import random_split
+from torch.utils.data import random_split
 from torch.utils.data import Subset
 from sklearn.model_selection import train_test_split
 import numpy as np
@@ -105,18 +105,28 @@ def getCIFAR100Dataset(phase, img_size, norm_type):
             train=True
         )
     
+        # train_part = 4
+        # val_part = 1
+        # total_per_classes = 500
+        # train_per_class = int(total_per_classes * (train_part / (train_part + val_part)))  # 400
+        # val_per_class = total_per_classes - train_per_class  # 100
+
+        # num_classes=100
+        # train_dataset, val_dataset = stratified_split(
+        #     train_val_dataset, 
+        #     num_classes=num_classes, 
+        #     train_per_class=train_per_class, 
+        #     val_per_class=val_per_class
+        # )
+
         train_part = 4
         val_part = 1
-        total_per_classes = 500
-        train_per_class = int(total_per_classes * (train_part / (train_part + val_part)))  # 400
-        val_per_class = total_per_classes - train_per_class  # 100
-
-        num_classes=100
-        train_dataset, val_dataset = stratified_split(
-            train_val_dataset, 
-            num_classes=num_classes, 
-            train_per_class=train_per_class, 
-            val_per_class=val_per_class
+        train_val_len = len(train_val_dataset)  # 50000
+        train_len = int(train_val_len * (train_part / (train_part + val_part)))  # 40000
+        val_len = train_val_len - train_len  # 10000
+        train_dataset, val_dataset = random_split(
+            train_val_dataset,
+            [train_len, val_len]
         )
         
         if phase == 'train':

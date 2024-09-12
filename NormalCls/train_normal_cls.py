@@ -44,8 +44,8 @@ def build_src_ckp_path(ckp_time_stamp, dataset_name, model_name):
 class TrainNormalClsParams(ParamsParent):
     # gpu_id = 0
     # gpu_id = 1
-    gpu_id = 2
-    # gpu_id = 3
+    # gpu_id = 2
+    gpu_id = 3
 
     #region mnist
     # dataset_name = "mnist"
@@ -102,9 +102,9 @@ class TrainNormalClsParams(ParamsParent):
     )
 
     # nohup python -u main.py > ./NormalCls/log/2024-09-11_15-31.txt 2>&1 &
-    # 实验 2      534329
+    # 实验 2      551300
     # nohup python -u main.py > ./NormalCls/log/2024-09-11_15-33.txt 2>&1 &
-    # 实验 4      534858
+    # 实验 4      551427
 
 
 

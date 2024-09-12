@@ -58,9 +58,9 @@ def getDataloader(
     #     raise RuntimeError(f"dataset_name:{dataset_name} is invalid!")
     if dataset_name == "mnist":
         d = getMnistDataset(phase, img_size, norm_type)
-    if dataset_name == "cifar100":
+    elif dataset_name == "cifar100":
         d = getCIFAR100Dataset(phase, img_size, norm_type)
-    if dataset_name == "cifar10":
+    elif dataset_name == "cifar10":
         d = getCIFAR10Dataset(phase, img_size, norm_type)
     else:
         raise RuntimeError(f"dataset_name: {dataset_name} is invalid")

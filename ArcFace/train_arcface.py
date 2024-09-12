@@ -54,19 +54,15 @@ class TrainArcFaceParams(ParamsParent):
     # proportion = None   # mnist 数据集不需要比例参数, 默认 50000:10000:10000
     #endregion
 
-    #region cifar100
     # dataset_name = "cifar100"
     # n_class = 100
     # img_size = 128
     # proportion = None   # cifar100 数据集不需要比例参数, 默认 40000:10000:10000
-    #endregion
 
-    #region cifar100
     dataset_name = "cifar10"
     n_class = 10
     img_size = 128
     proportion = None   # cifar10 数据集不需要比例参数, 默认 40000:10000:10000
-    #endregion
 
     # batch_size = 48
     batch_size = 128
@@ -102,8 +98,10 @@ class TrainArcFaceParams(ParamsParent):
         model_name
     )
 
+    # nohup python -u main.py > ./ArcFace/log/2024-09-11_15-30.txt 2>&1 &
+    # 实验 1      549765
     # nohup python -u main.py > ./ArcFace/log/2024-09-11_15-32.txt 2>&1 &
-    # 实验 3      534643
+    # 实验 3      551170
 
 
 
