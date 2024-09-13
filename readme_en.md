@@ -15,4 +15,8 @@ I just want to have a simple impression about their performance. Then I decided 
 
 ### 2.1 ArcFace (CVPR2019)
 
+ArcFace: Additive Angular Margin Loss for Deep Face Recognition
+
+> The performance of ArcFace on MNIST, CIFAR10, and CIFAR100 dataset is worse than softmax loss.
+
 ### 2.2 ElasticFace (CVPRW2022)

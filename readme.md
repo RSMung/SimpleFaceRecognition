@@ -14,6 +14,8 @@
 
 ArcFace: Additive Angular Margin Loss for Deep Face Recognition
 
+ArcFace在MNIST, CIFAR10, CIFAR100数据集上的性能均不如常规分类器方法
+
 - (2) ElasticFace (CVPRW2022)
 
 ElasticFace: Elastic Margin Loss for Deep Face Recognition

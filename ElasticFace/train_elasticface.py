@@ -41,11 +41,11 @@ def build_src_ckp_path(ckp_time_stamp, dataset_name, model_name):
 
 
 
-class TrainNormalClsParams(ParamsParent):
-    # gpu_id = 0
+class TrainElasticFaceParams(ParamsParent):
+    gpu_id = 0
     # gpu_id = 1
     # gpu_id = 2
-    gpu_id = 3
+    # gpu_id = 3
 
     #region mnist
     # dataset_name = "mnist"
@@ -54,19 +54,15 @@ class TrainNormalClsParams(ParamsParent):
     # proportion = None   # mnist 数据集不需要比例参数, 默认 50000:10000:10000
     #endregion
 
-    #region cifar100
     # dataset_name = "cifar100"
     # n_class = 100
     # img_size = 128
     # proportion = None   # cifar100 数据集不需要比例参数, 默认 40000:10000:10000
-    #endregion
 
-    #region cifar100
     dataset_name = "cifar10"
     n_class = 10
     img_size = 128
     proportion = None   # cifar10 数据集不需要比例参数, 默认 40000:10000:10000
-    #endregion
 
     # batch_size = 48
     batch_size = 128
@@ -74,11 +70,12 @@ class TrainNormalClsParams(ParamsParent):
 
     total_epochs = 1000
     # total_epochs = 1
-    early_stop_epochs = 20
+    # early_stop_epochs = 20
+    early_stop_epochs = 50
 
     backbone_type = "resnet18"
-    # loss_fuc_type = "arcface"
-    loss_fuc_type = "softmax"
+    loss_fuc_type = "ElasticFacePlus-Arc"
+    # loss_fuc_type = "softmax"
     model_name = backbone_type + "_" + loss_fuc_type
 
     use_tqdm = False
@@ -92,8 +89,8 @@ class TrainNormalClsParams(ParamsParent):
     save_csv = False
     # save_csv = True
 
-    # ckp_time_stamp = "2024-09-11_15-31"   # 实验 2   cifar100   resnet18   softmax
-    ckp_time_stamp = "2024-09-11_15-33"   # 实验 4   cifar10   resnet18   softmax
+    # ckp_time_stamp = "2024-09-13_17-00"   # 实验 5   cifar100   resnet18   elasticfaceplusarc
+    ckp_time_stamp = "2024-09-13_17-01"   # 实验 6   cifar10   resnet18   elasticfaceplusarc
     
     model_ckp_path, loss_root_path = build_src_ckp_path(
         ckp_time_stamp,
@@ -101,26 +98,28 @@ class TrainNormalClsParams(ParamsParent):
         model_name
     )
 
-    # nohup python -u main.py > ./NormalCls/log/2024-09-11_15-31.txt 2>&1 &
-    # 实验 2      1
-    # nohup python -u main.py > ./NormalCls/log/2024-09-11_15-33.txt 2>&1 &
-    # 实验 4      551427
+    # nohup python -u main.py > ./ElasticFace/log/2024-09-13_17-00.txt 2>&1 &
+    # 实验 5      647565
+    # nohup python -u main.py > ./ElasticFace/log/2024-09-13_17-01.txt 2>&1 &
+    # 实验 6      647622
 
 
 
 
 
 def train_procedure(
-        params:TrainNormalClsParams,
-        cls_model:nn.Module, 
+        params:TrainElasticFaceParams,
+        cls_model:nn.Module, elasticfaceplusarc_loss_func:nn.Module,
         train_dataloader,
         val_dataloader,
+        # test_dataloader
     ):
     """
     the train procedure for training normal classifier model
     Args:
         params (TrainNormalClsParams): all the parameters
         cls_model (nn.Module): the model we want to train
+        elasticfaceplusarc_loss_func (nn.Module): elasticfaceplusarc module
         train_dataloader: training data
         val_dataloader: validating data
     """
@@ -170,7 +169,7 @@ def train_procedure(
         elif signum == signal.SIGINT:
             print("Received Ctrl+C signal. Performing saving procedure for ckps...")
         torch.save(
-            cls_model.state_dict(), 
+            {"cls_model":cls_model.state_dict(), "elasticfaceplusarc_module":elasticfaceplusarc_loss_func.state_dict()}, 
             params.model_ckp_path + "_kill"
         )
         print(f"Saving procedure completed: {params.model_ckp_path}_kill")
@@ -200,11 +199,11 @@ def train_procedure(
         else:
             iter_object = train_dataloader
         for step, (images, labels) in enumerate(iter_object):
-
             if params.quick_debug:
                 if step > 3:
                     break
-                
+            # print(images.shape)
+            # print(labels.shape)
             # send images to gpu
             images = images.cuda()
             labels = labels.cuda()
@@ -213,16 +212,17 @@ def train_procedure(
             optimizer.zero_grad()
 
             # infer
-            prob_vector = cls_model(images)
+            feats = cls_model(images)
+            logits = elasticfaceplusarc_loss_func(feats, labels)
 
-            # 计算损失值
-            batch_loss = ce_loss_func(prob_vector, labels)
+            # computing loss
+            batch_loss = ce_loss_func(logits, labels)
 
-            # 记录损失值
+            # record loss
             avg_train_batch_loss += batch_loss.item()
             batch_num += 1
 
-            # 更新参数
+            # update parameters
             batch_loss.backward()
             optimizer.step()
         # end for iter_object
@@ -241,7 +241,7 @@ def train_procedure(
         # print("-----validate model on validation set-----")
         # validate model on validation set
         val_loss, val_acc, val_eer = validate_procedure(
-                cls_model,
+                cls_model, elasticfaceplusarc_loss_func,
                 train_dataloader, val_dataloader, 
                 params
         )
@@ -290,7 +290,7 @@ def train_procedure(
         no_change_epochs += 1
         if min_val_loss is None or val_loss < min_val_loss:
             torch.save(
-                cls_model.state_dict(), 
+                {"cls_model":cls_model.state_dict(), "elasticfaceplusarc_module":elasticfaceplusarc_loss_func.state_dict()}, 
                 params.model_ckp_path
             )
             min_val_loss = val_loss
@@ -308,25 +308,26 @@ def train_procedure(
             break
 
     # end all epoch
-    return cls_model
+    return cls_model, elasticfaceplusarc_loss_func
 
 
 @torch.no_grad()
 def validate_procedure(
     cls_model:nn.Module, 
+    elasticfaceplusarc_loss_func:nn.Module,
     train_dataloader:DataLoader,
     query_dataloader:DataLoader, 
-    params:TrainNormalClsParams,
+    params:TrainElasticFaceParams,
     save_csv=False
 ):
     """
     验证环节, 计算模型在指定数据集上的性能
     Args:
         cls_model (nn.Module): 特征提取器
-        arcface_loss_module (nn.Module): arcface 模块, 包含最后一个fc层, 可以用于计算acc
+        elasticfaceplusarc_loss_func (nn.Module): elasticfaceplusarc 模块, 包含最后一个fc层, 可以用于计算acc
         train_dataloader (DataLoader): 训练集, 即注册集
         query_dataloader (DataLoader): 指定的数据集
-        params (TrainNormalClsParams): 外部参数
+        params (TrainElasticFaceParams): 外部参数
     """
     # print("obtain the features and labels of training data")
     train_feats, train_labels = get_feats_labels(cls_model, train_dataloader, params)
@@ -346,14 +347,14 @@ def validate_procedure(
     )
     # print("get the value of cross entropy loss")
     ce_loss = get_cross_entropy_loss(
-        cls_model, 
+        cls_model, elasticfaceplusarc_loss_func, 
         query_dataloader, params
     )
     return ce_loss, acc, eer
 
 
 @torch.no_grad()
-def get_feats_labels(cls_model:nn.Module, dataloader:DataLoader, params:TrainNormalClsParams):
+def get_feats_labels(cls_model:nn.Module, dataloader:DataLoader, params:TrainElasticFaceParams):
     # setup the model on eval mode
     cls_model.eval()
 
@@ -371,7 +372,7 @@ def get_feats_labels(cls_model:nn.Module, dataloader:DataLoader, params:TrainNor
         images = images.cuda()
         labels = labels.cuda()
 
-        feats = cls_model.get_feats(images)
+        feats = cls_model(images)
         all_feats.append(feats)
         all_labels.append(labels)
     # end for dataloader
@@ -383,9 +384,11 @@ def get_feats_labels(cls_model:nn.Module, dataloader:DataLoader, params:TrainNor
 
 
 @torch.no_grad()
-def get_cross_entropy_loss(cls_model:nn.Module, dataloader:DataLoader, params:TrainNormalClsParams):
+def get_cross_entropy_loss(cls_model:nn.Module, elasticfaceplusarc_loss_func:nn.Module, dataloader:DataLoader, params:TrainElasticFaceParams):
     # setup the model on eval mode
     cls_model.eval()
+    elasticfaceplusarc_loss_func.eval()
+    last_fc = elasticfaceplusarc_loss_func.weight
 
     # setup the dataloader
     if params.use_tqdm:
@@ -403,8 +406,10 @@ def get_cross_entropy_loss(cls_model:nn.Module, dataloader:DataLoader, params:Tr
         images = images.cuda()
         labels = labels.cuda()
 
-        prob_vector = cls_model(images)
-        batch_loss = ce_entropy_loss(prob_vector, labels)
+        feats = cls_model(images)
+        logits = feats @ last_fc   # [b, feats_dim] * [feats_dim, n_class] -> [b, n_class]
+        # prob_vector = F.softmax(logits, dim=-1)
+        batch_loss = ce_entropy_loss(logits, labels)
 
         ce_loss += batch_loss.item()
         batch_num += 1
@@ -415,17 +420,18 @@ def get_cross_entropy_loss(cls_model:nn.Module, dataloader:DataLoader, params:Tr
 
 
 
-def trainNormalClsMain():
+def trainElasticFaceMain():
     # ------------------------------
     # -- init the env
     # ------------------------------
     import os
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(TrainNormalClsParams.gpu_id)
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(TrainElasticFaceParams.gpu_id)
+    os.environ["CUDA_LAUNCH_BLOCKING"] = str(1)
     prepareEnv()
     # ------------------------------
     # -- init src train params
     # ------------------------------
-    params = TrainNormalClsParams()
+    params = TrainElasticFaceParams()
     print(params)
     # ------------------------------
     # -- load data
@@ -461,16 +467,18 @@ def trainNormalClsMain():
     # ------------------------------------------
     print("=== init model ===")
     # params.dataset_name, params.model_name, params.n_class
-    cls_model = defineModel(params.dataset_name, params.backbone_type, params.loss_fuc_type, params.n_class)
+    cls_model, elasticfaceplusarc_loss_func = defineModel(
+        params.dataset_name, params.backbone_type, params.loss_fuc_type, params.n_class)
     print(type(cls_model))
+    print(type(elasticfaceplusarc_loss_func))
 
     # ------------------------------
     # -- train model
     # ------------------------------
     print("=== train model ===")
-    cls_model = train_procedure(
+    cls_model, elasticfaceplusarc_loss_func = train_procedure(
         params,
-        cls_model,
+        cls_model, elasticfaceplusarc_loss_func,
         train_dataloader, val_dataloader, 
         # test_dataloader
     )
@@ -482,12 +490,16 @@ def trainNormalClsMain():
     print("- Test best model on test dataset")
     print("-------------------------------------")
     # load archive
-    cls_model.load_state_dict(torch.load(params.model_ckp_path))
+    archive = torch.load(params.model_ckp_path)
+    # 加载进模型
+    cls_model.load_state_dict(archive["cls_model"])
+    elasticfaceplusarc_loss_func.load_state_dict(archive["elasticfaceplusarc_module"])
     # setup mode
     cls_model.eval()
+    elasticfaceplusarc_loss_func.eval()
     # validate model on test set
     test_loss, test_acc, test_eer = validate_procedure(
-        cls_model,
+        cls_model, elasticfaceplusarc_loss_func,
         train_dataloader, test_dataloader, 
         params,
         save_csv=params.save_csv
