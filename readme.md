@@ -14,8 +14,12 @@
 
 ArcFace: Additive Angular Margin Loss for Deep Face Recognition
 
+ArcFace 在特征与最后一层FC的权重的夹角上添加margin使得类内聚合、类间分离。
+
 ArcFace在MNIST, CIFAR10, CIFAR100数据集上的性能均不如常规分类器方法
 
 - (2) ElasticFace (CVPRW2022)
 
 ElasticFace: Elastic Margin Loss for Deep Face Recognition
+
+将ArcFace或者CosFace添加的固定margin值改为从正态分布中采样，并且cos_\theta值大的使用较小的margin值，反之使用较大的margin值。

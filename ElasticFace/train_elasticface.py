@@ -99,9 +99,9 @@ class TrainElasticFaceParams(ParamsParent):
     )
 
     # nohup python -u main.py > ./ElasticFace/log/2024-09-13_17-00.txt 2>&1 &
-    # 实验 5      647565
+    # 实验 5      2
     # nohup python -u main.py > ./ElasticFace/log/2024-09-13_17-01.txt 2>&1 &
-    # 实验 6      647622
+    # 实验 6      2
 
 
 
@@ -426,7 +426,6 @@ def trainElasticFaceMain():
     # ------------------------------
     import os
     os.environ["CUDA_VISIBLE_DEVICES"] = str(TrainElasticFaceParams.gpu_id)
-    os.environ["CUDA_LAUNCH_BLOCKING"] = str(1)
     prepareEnv()
     # ------------------------------
     # -- init src train params
@@ -506,6 +505,6 @@ def trainElasticFaceMain():
     )
     print(
         f'test_loss:{test_loss:.4f}, '
-        f'test_acc: {test_acc*100:.4f} %, '
+        f'test_acc: {test_acc*100:.2f} %, '
         f'test_eer: {test_eer*100:.2f} %'
     )

@@ -494,6 +494,6 @@ def trainNormalClsMain():
     )
     print(
         f'test_loss:{test_loss:.4f}, '
-        f'test_acc: {test_acc*100:.4f} %, '
+        f'test_acc: {test_acc*100:.2f} %, '
         f'test_eer: {test_eer*100:.2f} %'
     )

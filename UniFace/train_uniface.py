@@ -41,7 +41,7 @@ def build_src_ckp_path(ckp_time_stamp, dataset_name, model_name):
 
 
 
-class TrainArcFaceParams(ParamsParent):
+class TrainUniFaceParams(ParamsParent):
     # gpu_id = 0
     gpu_id = 1
     # gpu_id = 2
@@ -70,11 +70,11 @@ class TrainArcFaceParams(ParamsParent):
 
     total_epochs = 1000
     # total_epochs = 1
-    # early_stop_epochs = 20
-    early_stop_epochs = 50
+    early_stop_epochs = 20
+    # early_stop_epochs = 50
 
     backbone_type = "resnet18"
-    loss_fuc_type = "arcface"
+    loss_fuc_type = "UniFaceArcFace"
     # loss_fuc_type = "softmax"
     model_name = backbone_type + "_" + loss_fuc_type
 
@@ -89,8 +89,8 @@ class TrainArcFaceParams(ParamsParent):
     save_csv = False
     # save_csv = True
 
-    # ckp_time_stamp = "2024-09-11_15-30"   # 实验 1   cifar100   resnet18   arcface
-    ckp_time_stamp = "2024-09-11_15-32"   # 实验 3   cifar10   resnet18   arcface
+    # ckp_time_stamp = "2024-09-21_14-00"   # 实验 7   cifar100   resnet18   unifacearc
+    ckp_time_stamp = "2024-09-21_14-01"   # 实验 8   cifar10   resnet18   unifacearc
     
     model_ckp_path, loss_root_path = build_src_ckp_path(
         ckp_time_stamp,
@@ -98,18 +98,18 @@ class TrainArcFaceParams(ParamsParent):
         model_name
     )
 
-    # nohup python -u main.py > ./ArcFace/log/2024-09-11_15-30.txt 2>&1 &
-    # 实验 1      549765
-    # nohup python -u main.py > ./ArcFace/log/2024-09-11_15-32.txt 2>&1 &
-    # 实验 3      551170
+    # nohup python -u main.py > ./UniFace/log/2024-09-13_17-00.txt 2>&1 &
+    # 实验 7      1750562
+    # nohup python -u main.py > ./UniFace/log/2024-09-13_17-01.txt 2>&1 &
+    # 实验 8      1750738
 
 
 
 
 
 def train_procedure(
-        params:TrainArcFaceParams,
-        cls_model:nn.Module, arcface_loss_func:nn.Module,
+        params:TrainUniFaceParams,
+        cls_model:nn.Module, unifacearc_loss_func:nn.Module,
         train_dataloader,
         val_dataloader,
         # test_dataloader
@@ -119,7 +119,7 @@ def train_procedure(
     Args:
         params (TrainNormalClsParams): all the parameters
         cls_model (nn.Module): the model we want to train
-        arcface_loss_func (nn.Module): arcface module
+        unifacearc_loss_func (nn.Module): unifacearc_loss_func
         train_dataloader: training data
         val_dataloader: validating data
     """
@@ -169,7 +169,7 @@ def train_procedure(
         elif signum == signal.SIGINT:
             print("Received Ctrl+C signal. Performing saving procedure for ckps...")
         torch.save(
-            {"cls_model":cls_model.state_dict(), "arcface_module":arcface_loss_func.state_dict()}, 
+            {"cls_model":cls_model.state_dict(), "UniFaceArcFace":unifacearc_loss_func.state_dict()}, 
             params.model_ckp_path + "_kill"
         )
         print(f"Saving procedure completed: {params.model_ckp_path}_kill")
@@ -193,6 +193,7 @@ def train_procedure(
         start_time = time.time()
         # setup network
         cls_model.train()
+        unifacearc_loss_func.train() 
         # setup the progress bar
         if params.use_tqdm:
             iter_object = tqdm(train_dataloader, ncols=100)
@@ -208,26 +209,44 @@ def train_procedure(
             images = images.cuda()
             labels = labels.cuda()
 
-            # # 将labels变成onehot形式
-            # one_hot_labels = F.one_hot(labels, params.n_class).cuda()
-            # # one_hot_labels = torch.zeros((images.shape[0], params.n_class), device='cuda')
-            # # one_hot_labels.scatter_(dim=1, index=labels.view(-1, 1).long(), value=1)
+            # ----------------------------------------------------------
+            # - 首先从标签中提取出当前 batch 中已经出现的类别（positive）
+            # - 然后从剩余类别中随机选取一定比例的类别
+            # ----------------------------------------------------------
+            # 提取出不重复的标签值, 并且按升序排列
+            positive = torch.unique(labels, sorted=True)
+            # 生成一个包含从 0 到 params.n_class-1 的整数随机排列
+            perm = torch.randperm(params.n_class)
+            # 本次batch中出现的标签的位置 置0
+            perm[positive] = 0
+            # 获取batch中没出现的标签中最小的k个标签
+            # 为了平衡正负样本的数量
+            # torch.topk 的返回值是一个二元组 (values, indices)
+            # values 是 perm 中最小的 k 个元素
+            # indices 是这些元素在 perm 中对应的索引位置
+            indices = torch.topk(
+                perm, 
+                k=int(params.n_class*unifacearc_loss_func.r), 
+                largest=False
+            )[1]
+            # 对 indices 中的元素进行升序排序，并返回排序后的张量 partial_index
+            partial_index = indices.sort()[0]
+            partial_index = partial_index.cuda()
 
             # zero gradients for optimizer
             optimizer.zero_grad()
 
-            # 提取特征
+            # infer
             feats = cls_model(images)
-            logits = arcface_loss_func(feats, labels)
 
-            # 计算损失值
-            batch_loss = ce_loss_func(logits, labels)
+            # computing loss
+            batch_loss = unifacearc_loss_func(feats, labels, partial_index)
 
-            # 记录损失值
+            # record loss
             avg_train_batch_loss += batch_loss.item()
             batch_num += 1
 
-            # 更新参数
+            # update parameters
             batch_loss.backward()
             optimizer.step()
         # end for iter_object
@@ -243,13 +262,15 @@ def train_procedure(
         #         train_dataloader, train_dataloader, 
         #         params
         # )
+
         # print("-----validate model on validation set-----")
         # validate model on validation set
         val_loss, val_acc, val_eer = validate_procedure(
-                cls_model, arcface_loss_func,
+                cls_model, unifacearc_loss_func,
                 train_dataloader, val_dataloader, 
                 params
         )
+
         # print("-----validate model on test set-----")
         # # validate model on test set
         # test_loss, test_acc, test_eer = validate_procedure(
@@ -295,7 +316,10 @@ def train_procedure(
         no_change_epochs += 1
         if min_val_loss is None or val_loss < min_val_loss:
             torch.save(
-                {"cls_model":cls_model.state_dict(), "arcface_module":arcface_loss_func.state_dict()}, 
+                {
+                    "cls_model":cls_model.state_dict(), 
+                    "UniFaceArcFace":unifacearc_loss_func.state_dict()
+                }, 
                 params.model_ckp_path
             )
             min_val_loss = val_loss
@@ -313,26 +337,26 @@ def train_procedure(
             break
 
     # end all epoch
-    return cls_model, arcface_loss_func
+    return cls_model, unifacearc_loss_func
 
 
 @torch.no_grad()
 def validate_procedure(
     cls_model:nn.Module, 
-    arcface_loss_module:nn.Module,
+    unifacearc_loss_func:nn.Module,
     train_dataloader:DataLoader,
     query_dataloader:DataLoader, 
-    params:TrainArcFaceParams,
+    params:TrainUniFaceParams,
     save_csv=False
 ):
     """
     验证环节, 计算模型在指定数据集上的性能
     Args:
         cls_model (nn.Module): 特征提取器
-        arcface_loss_module (nn.Module): arcface 模块, 包含最后一个fc层, 可以用于计算acc
+        unifacearc_loss_func (nn.Module): unifacearc_loss_func 模块, 包含最后一个fc层, 可以用于计算acc
         train_dataloader (DataLoader): 训练集, 即注册集
         query_dataloader (DataLoader): 指定的数据集
-        params (TrainArcFaceParams): 外部参数
+        params (TrainUniFaceParams): 外部参数
     """
     # print("obtain the features and labels of training data")
     train_feats, train_labels = get_feats_labels(cls_model, train_dataloader, params)
@@ -351,15 +375,15 @@ def validate_procedure(
         save_csv=save_csv
     )
     # print("get the value of cross entropy loss")
-    ce_loss = get_cross_entropy_loss(
-        cls_model, arcface_loss_module, 
+    unifacearc_loss = get_unifacearc_loss(
+        cls_model, unifacearc_loss_func, 
         query_dataloader, params
     )
-    return ce_loss, acc, eer
+    return unifacearc_loss, acc, eer
 
 
 @torch.no_grad()
-def get_feats_labels(cls_model:nn.Module, dataloader:DataLoader, params:TrainArcFaceParams):
+def get_feats_labels(cls_model:nn.Module, dataloader:DataLoader, params:TrainUniFaceParams):
     # setup the model on eval mode
     cls_model.eval()
 
@@ -389,11 +413,11 @@ def get_feats_labels(cls_model:nn.Module, dataloader:DataLoader, params:TrainArc
 
 
 @torch.no_grad()
-def get_cross_entropy_loss(cls_model:nn.Module, arcface_loss_module:nn.Module, dataloader:DataLoader, params:TrainArcFaceParams):
+def get_unifacearc_loss(cls_model:nn.Module, unifacearc_loss_func:nn.Module, dataloader:DataLoader, params:TrainUniFaceParams):
     # setup the model on eval mode
     cls_model.eval()
-    arcface_loss_module.eval()
-    last_fc = arcface_loss_module.weight
+    unifacearc_loss_func.eval()
+    # last_fc = unifacearc_loss_func.weight
 
     # setup the dataloader
     if params.use_tqdm:
@@ -401,7 +425,7 @@ def get_cross_entropy_loss(cls_model:nn.Module, arcface_loss_module:nn.Module, d
     else:
         iter_object = dataloader
 
-    ce_entropy_loss = nn.CrossEntropyLoss()
+    # ce_entropy_loss = nn.CrossEntropyLoss()
 
     ce_loss = 0
     batch_num = 0
@@ -411,10 +435,32 @@ def get_cross_entropy_loss(cls_model:nn.Module, arcface_loss_module:nn.Module, d
         images = images.cuda()
         labels = labels.cuda()
 
+        # ----------------------------------------------------------
+        # - 首先从标签中提取出当前 batch 中已经出现的类别（positive）
+        # - 然后从剩余类别中随机选取一定比例的类别
+        # ----------------------------------------------------------
+        # 提取出不重复的标签值, 并且按升序排列
+        positive = torch.unique(labels, sorted=True)
+        # 生成一个包含从 0 到 params.n_class-1 的整数随机排列
+        perm = torch.randperm(params.n_class)
+        # 本次batch中出现的标签的位置 置0
+        perm[positive] = 0
+        # 获取batch中没出现的标签中最小的k个标签
+        # 为了平衡正负样本的数量
+        # torch.topk 的返回值是一个二元组 (values, indices)
+        # values 是 perm 中最小的 k 个元素
+        # indices 是这些元素在 perm 中对应的索引位置
+        indices = torch.topk(
+            perm, 
+            k=int(params.n_class*unifacearc_loss_func.r), 
+            largest=False
+        )[1]
+        # 对 indices 中的元素进行升序排序，并返回排序后的张量 partial_index
+        partial_index = indices.sort()[0]
+        partial_index = partial_index.cuda()
+
         feats = cls_model(images)
-        logits = feats @ last_fc   # [b, feats_dim] * [feats_dim, n_class] -> [b, n_class]
-        prob_vector = F.softmax(logits, dim=-1)
-        batch_loss = ce_entropy_loss(prob_vector, labels)
+        batch_loss = unifacearc_loss_func(feats, labels, partial_index)
 
         ce_loss += batch_loss.item()
         batch_num += 1
@@ -425,17 +471,17 @@ def get_cross_entropy_loss(cls_model:nn.Module, arcface_loss_module:nn.Module, d
 
 
 
-def trainArcFaceMain():
+def trainUniFaceMain():
     # ------------------------------
     # -- init the env
     # ------------------------------
     import os
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(TrainArcFaceParams.gpu_id)
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(TrainUniFaceParams.gpu_id)
     prepareEnv()
     # ------------------------------
     # -- init src train params
     # ------------------------------
-    params = TrainArcFaceParams()
+    params = TrainUniFaceParams()
     print(params)
     # ------------------------------
     # -- load data
@@ -471,17 +517,18 @@ def trainArcFaceMain():
     # ------------------------------------------
     print("=== init model ===")
     # params.dataset_name, params.model_name, params.n_class
-    cls_model, arcface_loss_func = defineModel(params.dataset_name, params.backbone_type, params.loss_fuc_type, params.n_class)
+    cls_model, unifacearc_loss_func = defineModel(
+        params.dataset_name, params.backbone_type, params.loss_fuc_type, params.n_class)
     print(type(cls_model))
-    # arcface_loss_func = ArcFaceLoss(feat_dim=cls_model.feats_dim, n_class=params.n_class).cuda()
+    print(type(unifacearc_loss_func))
 
     # ------------------------------
     # -- train model
     # ------------------------------
     print("=== train model ===")
-    cls_model, arcface_loss_func = train_procedure(
+    cls_model, unifacearc_loss_func = train_procedure(
         params,
-        cls_model, arcface_loss_func,
+        cls_model, unifacearc_loss_func,
         train_dataloader, val_dataloader, 
         # test_dataloader
     )
@@ -496,13 +543,13 @@ def trainArcFaceMain():
     archive = torch.load(params.model_ckp_path)
     # 加载进模型
     cls_model.load_state_dict(archive["cls_model"])
-    arcface_loss_func.load_state_dict(archive["arcface_module"])
+    unifacearc_loss_func.load_state_dict(archive["UniFaceArcFace"])
     # setup mode
     cls_model.eval()
-    arcface_loss_func.eval()
+    unifacearc_loss_func.eval()
     # validate model on test set
     test_loss, test_acc, test_eer = validate_procedure(
-        cls_model, arcface_loss_func,
+        cls_model, unifacearc_loss_func,
         train_dataloader, test_dataloader, 
         params,
         save_csv=params.save_csv
