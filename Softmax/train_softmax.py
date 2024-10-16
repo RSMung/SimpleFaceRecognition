@@ -51,17 +51,17 @@ class TrainSoftmaxParams(ParamsParent):
     #endregion
 
     #region cifar100
-    dataset_name = "cifar100"
-    n_class = 100
-    img_size = 128
-    proportion = None   # default train:val:test = 40000:10000:10000
+    # dataset_name = "cifar100"
+    # n_class = 100
+    # img_size = 128
+    # proportion = None   # default train:val:test = 40000:10000:10000
     #endregion
 
     #region cifar10
-    # dataset_name = "cifar10"
-    # n_class = 10
-    # img_size = 128
-    # proportion = None   # default train:val:test = 40000:10000:10000
+    dataset_name = "cifar10"
+    n_class = 10
+    img_size = 128
+    proportion = None   # default train:val:test = 40000:10000:10000
     #endregion
 
     # batch_size = 48
@@ -92,7 +92,8 @@ class TrainSoftmaxParams(ParamsParent):
     save_csv = False
     # save_csv = True
 
-    ckp_time_stamp = "2024-10-15_16-00"   # exp1   cifar100   resnet18   softmax
+    # ckp_time_stamp = "2024-10-15_16-00"   # exp1   cifar100   resnet18   softmax
+    ckp_time_stamp = "2024-10-15_16-10"   # exp5   cifar10   resnet18   softmax
     
     model_ckp_path, loss_root_path = build_src_ckp_path(
         ckp_time_stamp,
@@ -101,7 +102,9 @@ class TrainSoftmaxParams(ParamsParent):
     )
 
     # nohup python -u main.py > ./Softmax/log/2024-10-15_16-00.txt 2>&1 &
-    # exp1      703126
+    # exp1      2
+    # nohup python -u main.py > ./Softmax/log/2024-10-15_16-10.txt 2>&1 &
+    # exp5      1250636
 
 
 

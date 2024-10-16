@@ -22,10 +22,10 @@ flag4 = "trainUniFaceMain"
 
 
 
-# flag = flag1
-# flag = flag2
-flag = flag3
-# flag = flag4
+# flag = flag1   # arcface
+# flag = flag2   # softmax
+# flag = flag3   # elasticface
+flag = flag4   # uniface
 
 
 

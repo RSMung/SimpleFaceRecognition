@@ -52,17 +52,17 @@ class TrainUniFaceParams(ParamsParent):
     #endregion
 
     #region cifar100
-    dataset_name = "cifar100"
-    n_class = 100
-    img_size = 128
-    proportion = None   # default train:val:test = 40000:10000:10000
+    # dataset_name = "cifar100"
+    # n_class = 100
+    # img_size = 128
+    # proportion = None   # default train:val:test = 40000:10000:10000
     #endregion
 
     #region cifar10
-    # dataset_name = "cifar10"
-    # n_class = 10
-    # img_size = 128
-    # proportion = None   # default train:val:test = 40000:10000:10000
+    dataset_name = "cifar10"
+    n_class = 10
+    img_size = 128
+    proportion = None   # default train:val:test = 40000:10000:10000
     #endregion
 
     # batch_size = 48
@@ -93,7 +93,8 @@ class TrainUniFaceParams(ParamsParent):
     save_csv = False
     # save_csv = True
 
-    ckp_time_stamp = "2024-10-15_16-03"   # exp4   cifar10   resnet18   unifacearc
+    # ckp_time_stamp = "2024-10-15_16-03"   # exp4   cifar100   resnet18   unifacearc
+    ckp_time_stamp = "2024-10-15_16-13"   # exp8   cifar10   resnet18   unifacearc
     
     model_ckp_path, loss_root_path = build_src_ckp_path(
         ckp_time_stamp,
@@ -102,7 +103,9 @@ class TrainUniFaceParams(ParamsParent):
     )
 
     # nohup python -u main.py > ./UniFace/log/2024-10-15_16-03.txt 2>&1 &
-    # exp4      742527
+    # exp4      2
+    # nohup python -u main.py > ./UniFace/log/2024-10-15_16-13.txt 2>&1 &
+    # exp8      1252794
 
 
 

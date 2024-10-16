@@ -52,17 +52,17 @@ class TrainArcFaceParams(ParamsParent):
     #endregion
 
     #region cifar100
-    dataset_name = "cifar100"
-    n_class = 100
-    img_size = 128
-    proportion = None   # default train:val:test = 40000:10000:10000
+    # dataset_name = "cifar100"
+    # n_class = 100
+    # img_size = 128
+    # proportion = None   # default train:val:test = 40000:10000:10000
     #endregion
 
     #region cifar10
-    # dataset_name = "cifar10"
-    # n_class = 10
-    # img_size = 128
-    # proportion = None   # default train:val:test = 40000:10000:10000
+    dataset_name = "cifar10"
+    n_class = 10
+    img_size = 128
+    proportion = None   # default train:val:test = 40000:10000:10000
     #endregion
 
     # batch_size = 48
@@ -95,7 +95,8 @@ class TrainArcFaceParams(ParamsParent):
     save_csv = False
     # save_csv = True
 
-    ckp_time_stamp = "2024-10-15_16-01"   # exp2   cifar100   resnet18   arcface
+    # ckp_time_stamp = "2024-10-15_16-01"   # exp2   cifar100   resnet18   arcface
+    ckp_time_stamp = "2024-10-15_16-11"   # exp6   cifar10   resnet18   arcface
     
     model_ckp_path, loss_root_path = build_src_ckp_path(
         ckp_time_stamp,
@@ -104,7 +105,9 @@ class TrainArcFaceParams(ParamsParent):
     )
 
     # nohup python -u main.py > ./ArcFace/log/2024-10-15_16-01.txt 2>&1 &
-    # exp2      717229
+    # exp2      2
+    # nohup python -u main.py > ./ArcFace/log/2024-10-15_16-11.txt 2>&1 &
+    # exp6      1251584
 
 
 
