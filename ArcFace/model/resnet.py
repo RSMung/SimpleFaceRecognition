@@ -9,8 +9,9 @@ import torch
 class Resnet18(nn.Module):
     def __init__(self):
         super().__init__()
-        self.backbone = vmodels.resnet18(pretrained=True)
+        self.backbone = vmodels.resnet18(weights=vmodels.ResNet18_Weights.IMAGENET1K_V1)
         # self.backbone = vmodels.resnet18(pretrained=False)
+        # 512 -> 512
         self.backbone.fc = nn.Linear(
             in_features=self.backbone.fc.in_features,
             out_features=self.backbone.fc.in_features
@@ -18,6 +19,8 @@ class Resnet18(nn.Module):
         self.feats_dim = self.backbone.fc.in_features
 
     def forward(self, x):
+        # print(x.shape)
+        # x = self.in_conv(x)
         x = self.backbone(x)
         return x
     
@@ -25,14 +28,14 @@ class Resnet18(nn.Module):
 class Resnet18_softmax(nn.Module):
     def __init__(self, n_class):
         super().__init__()
-        # self.in_conv = nn.Conv2d(1, 3, 1)
-        self.backbone = vmodels.resnet18(pretrained=True)
+        self.backbone = vmodels.resnet18(weights=vmodels.ResNet18_Weights.IMAGENET1K_V1)
         # self.backbone = vmodels.resnet18(pretrained=False)
+        # 512 -> 512
         self.backbone.fc = nn.Linear(
             in_features=self.backbone.fc.in_features,
             out_features=n_class
         )
-        self.softmax = nn.Softmax(-1)
+        self.feats_dim = self.backbone.fc.in_features
 
     def get_feats(self, x):
         x = self.backbone.conv1(x)
@@ -51,9 +54,7 @@ class Resnet18_softmax(nn.Module):
     
     def forward(self, x):
         x = self.backbone(x)
-        x = self.softmax(x)
         return x
-    
     
 # a = vmodels.resnet18(pretrained=False)
 # print(a)

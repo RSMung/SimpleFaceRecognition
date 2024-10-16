@@ -13,6 +13,7 @@ from tqdm import tqdm
 import sys
 import signal
 from datetime import timedelta
+from itertools import chain 
 
 from ArcFace.model.get_model import defineModel
 from global_utils import identification_procedure, prepareEnv, verification_procedure
@@ -42,27 +43,27 @@ def build_src_ckp_path(ckp_time_stamp, dataset_name, model_name):
 
 
 class TrainElasticFaceParams(ParamsParent):
-    gpu_id = 0
-    # gpu_id = 1
-    # gpu_id = 2
-    # gpu_id = 3
 
     #region mnist
     # dataset_name = "mnist"
     # n_class = 10
     # img_size = 128
-    # proportion = None   # mnist 数据集不需要比例参数, 默认 50000:10000:10000
+    # proportion = None   # default train:val:test = 50000:10000:10000
     #endregion
 
-    # dataset_name = "cifar100"
-    # n_class = 100
-    # img_size = 128
-    # proportion = None   # cifar100 数据集不需要比例参数, 默认 40000:10000:10000
-
-    dataset_name = "cifar10"
-    n_class = 10
+    #region cifar100
+    dataset_name = "cifar100"
+    n_class = 100
     img_size = 128
-    proportion = None   # cifar10 数据集不需要比例参数, 默认 40000:10000:10000
+    proportion = None   # default train:val:test = 40000:10000:10000
+    #endregion
+
+    #region cifar10
+    # dataset_name = "cifar10"
+    # n_class = 10
+    # img_size = 128
+    # proportion = None   # default train:val:test = 40000:10000:10000
+    #endregion
 
     # batch_size = 48
     batch_size = 128
@@ -74,23 +75,26 @@ class TrainElasticFaceParams(ParamsParent):
     early_stop_epochs = 50
 
     backbone_type = "resnet18"
-    loss_fuc_type = "ElasticFacePlus-Arc"
+    loss_fuc_type = "elasticfaceplusarc"
     # loss_fuc_type = "softmax"
     model_name = backbone_type + "_" + loss_fuc_type
 
+    # if this flag is True:
+    # the progress bar will be shown
     use_tqdm = False
     # use_tqdm = True
 
-    # 是否快速调试
+    # if this flag is true:
+    # the for loop will be broken after few steps
     quick_debug = False
     # quick_debug = True
 
-    # 是否在测试模型时 保存DET曲线数据到csv文件中
+    # if this flag is True:
+    # the DET curve data will be saved when we calculate the eer
     save_csv = False
     # save_csv = True
 
-    # ckp_time_stamp = "2024-09-13_17-00"   # 实验 5   cifar100   resnet18   elasticfaceplusarc
-    ckp_time_stamp = "2024-09-13_17-01"   # 实验 6   cifar10   resnet18   elasticfaceplusarc
+    ckp_time_stamp = "2024-10-15_16-02"   # exp3   cifar100   resnet18   elasticfaceplusarc
     
     model_ckp_path, loss_root_path = build_src_ckp_path(
         ckp_time_stamp,
@@ -98,10 +102,8 @@ class TrainElasticFaceParams(ParamsParent):
         model_name
     )
 
-    # nohup python -u main.py > ./ElasticFace/log/2024-09-13_17-00.txt 2>&1 &
-    # 实验 5      2
-    # nohup python -u main.py > ./ElasticFace/log/2024-09-13_17-01.txt 2>&1 &
-    # 实验 6      2
+    # nohup python -u main.py > ./ElasticFace/log/2024-10-15_16-02.txt 2>&1 &
+    # exp3      742010
 
 
 
@@ -138,8 +140,7 @@ def train_procedure(
     # -----------------------------------
     optimizer = optim.AdamW(
     # optimizer = optim.RMSprop(
-        # vgg16_2 only update the params of fc module
-        cls_model.parameters(),
+        chain(cls_model.parameters(), elasticfaceplusarc_loss_func.parameters()),
         lr=params.lr,
         # weight_decay=0.05
         weight_decay=5e-4
@@ -153,32 +154,36 @@ def train_procedure(
     ce_loss_func = nn.CrossEntropyLoss()
 
     #region kill process
-    # ----------------------------------------------------------------------
-    # 定义一个信号处理函数, 用于处理kill命令的SIGTERM信号, 在退出前保存一次模型
-    # ----------------------------------------------------------------------
+    # ---------------------------------------------------------------------------------------
+    # Define a signal processing function to handle the SIGTERM signal of the kill command and 
+    # save the model before exiting
+    # ---------------------------------------------------------------------------------------
     def handle_sigterm(signum, frame):
         """
-        当使用 kill <进程id> 命令终止程序时会调用这个程序
-        当使用 ctrl+c 命令终止程序时会调用这个程序
+        When using the "kill <process id>" and "ctrl+c" to terminate a program, 
+        this function will be called
         Args:
-            signum: 一个整数，代表接收到的信号的编号. signal.SIGTERM
-            frame: 一个包含有关信号的堆栈信息的对象
+            signum: An integer representing the number of the received signal. signal.SIGTERM
+            frame: An object containing stack information about signals
         """
         if signum == signal.SIGTERM:
             print("Received kill signal. Performing saving procedure for ckps...")
         elif signum == signal.SIGINT:
             print("Received Ctrl+C signal. Performing saving procedure for ckps...")
         torch.save(
-            {"cls_model":cls_model.state_dict(), "elasticfaceplusarc_module":elasticfaceplusarc_loss_func.state_dict()}, 
+            {
+                "cls_model":cls_model.state_dict(), 
+                params.loss_fuc_type:elasticfaceplusarc_loss_func.state_dict()
+            }, 
             params.model_ckp_path + "_kill"
         )
         print(f"Saving procedure completed: {params.model_ckp_path}_kill")
         sys.exit(0)
 
-    # 注册SIGTERM信号处理函数
-    # 将handle_sigterm函数与特定的信号（signal.SIGTERM）相关联
+    # Register SIGTERM signal processing function
+    # Associate the handle_sterm function with a specific signal (signal.SIGTERM)
     signal.signal(signal.SIGTERM, handle_sigterm)
-    # SIGINT是Ctrl+C传送的中断进程信号
+    # SIGINT is an interrupt process signal transmitted by Ctrl+C
     signal.signal(signal.SIGINT, handle_sigterm)
     #endregion
 
@@ -193,6 +198,7 @@ def train_procedure(
         start_time = time.time()
         # setup network
         cls_model.train()
+        elasticfaceplusarc_loss_func.train()
         # setup the progress bar
         if params.use_tqdm:
             iter_object = tqdm(train_dataloader, ncols=100)
@@ -231,13 +237,6 @@ def train_procedure(
 
         avg_train_batch_loss /= batch_num
 
-        # print("-----validate model on training set-----")
-        # # validate model on training set
-        # train_loss, train_acc, train_eer = validate_procedure(
-        #         cls_model, arcface_loss_func,
-        #         train_dataloader, train_dataloader, 
-        #         params
-        # )
         # print("-----validate model on validation set-----")
         # validate model on validation set
         val_loss, val_acc, val_eer = validate_procedure(
@@ -245,13 +244,6 @@ def train_procedure(
                 train_dataloader, val_dataloader, 
                 params
         )
-        # print("-----validate model on test set-----")
-        # # validate model on test set
-        # test_loss, test_acc, test_eer = validate_procedure(
-        #         cls_model, arcface_loss_func,
-        #         train_dataloader, test_dataloader, 
-        #         params
-        # )
 
         # adjust the learning rate
         step_lr_scheduler.step()
@@ -260,28 +252,17 @@ def train_procedure(
         print(
             f'[{epoch}/{params.total_epochs}]\n'
             f'avg_train_batch_loss: {avg_train_batch_loss:.4f}\n '
-            # f'train_acc: {train_acc*100:.2f} %, '
-            # f'train_eer: {train_eer*100:.2f} %\n'
             f'val_loss: {val_loss:.4f} , '
             f'val_acc: {val_acc*100:.2f} %, '
-            f'val_eer: {val_eer*100:.2f} %\n'
-            # f'test_loss: {test_loss:.4f} , '
-            # f'test_acc: {test_acc*100:.2f} %, '
-            # f'test_eer: {test_eer*100:.2f} %'
+            f'val_eer: {val_eer*100:.2f} %'
         )
 
-        # print(f"avg_train_batch_loss:{avg_train_batch_loss.device}")
-        # print(f"val_loss:{val_loss.device}")
-        # print(f"val_acc:{val_acc.device}")
-        # print(f"val_eer:{val_eer.device}")
         # save the log data
         lossUtil.append(
             loss_name=loss_name,
             loss_data=[
                 avg_train_batch_loss, 
-                # train_acc, train_eer,
                 val_loss, val_acc, val_eer,
-                # test_loss, test_acc, test_eer
             ]
         )
         lossUtil.autoSaveFileAndImage()
@@ -290,12 +271,12 @@ def train_procedure(
         no_change_epochs += 1
         if min_val_loss is None or val_loss < min_val_loss:
             torch.save(
-                {"cls_model":cls_model.state_dict(), "elasticfaceplusarc_module":elasticfaceplusarc_loss_func.state_dict()}, 
+                {"cls_model":cls_model.state_dict(), params.loss_fuc_type:elasticfaceplusarc_loss_func.state_dict()}, 
                 params.model_ckp_path
             )
             min_val_loss = val_loss
             no_change_epochs = 0
-            print('已经保存当前模型')
+            print('The weights of the model have been saved!')
         
         # the time for this epoch
         end_time = time.time()
@@ -321,13 +302,13 @@ def validate_procedure(
     save_csv=False
 ):
     """
-    验证环节, 计算模型在指定数据集上的性能
+    Verification phase, calculating the performance of the model on a specified dataset
     Args:
-        cls_model (nn.Module): 特征提取器
-        elasticfaceplusarc_loss_func (nn.Module): elasticfaceplusarc 模块, 包含最后一个fc层, 可以用于计算acc
-        train_dataloader (DataLoader): 训练集, 即注册集
-        query_dataloader (DataLoader): 指定的数据集
-        params (TrainElasticFaceParams): 外部参数
+        cls_model (nn.Module): model
+        elasticfaceplusarc_loss_func (nn.Module): elasticfaceplusarc module, which includes a fc layer
+        train_dataloader (DataLoader): Training set, also known as registration set
+        query_dataloader (DataLoader): specific dataset
+        params (TrainSoftmaxParams): External parameters
     """
     # print("obtain the features and labels of training data")
     train_feats, train_labels = get_feats_labels(cls_model, train_dataloader, params)
@@ -388,7 +369,6 @@ def get_cross_entropy_loss(cls_model:nn.Module, elasticfaceplusarc_loss_func:nn.
     # setup the model on eval mode
     cls_model.eval()
     elasticfaceplusarc_loss_func.eval()
-    last_fc = elasticfaceplusarc_loss_func.weight
 
     # setup the dataloader
     if params.use_tqdm:
@@ -406,9 +386,8 @@ def get_cross_entropy_loss(cls_model:nn.Module, elasticfaceplusarc_loss_func:nn.
         images = images.cuda()
         labels = labels.cuda()
 
-        feats = cls_model(images)
-        logits = feats @ last_fc   # [b, feats_dim] * [feats_dim, n_class] -> [b, n_class]
-        # prob_vector = F.softmax(logits, dim=-1)
+        feats = cls_model(images)   # [b, feats_dim]
+        logits = elasticfaceplusarc_loss_func(feats, labels)   # [b, n_class]
         batch_loss = ce_entropy_loss(logits, labels)
 
         ce_loss += batch_loss.item()
@@ -424,8 +403,6 @@ def trainElasticFaceMain():
     # ------------------------------
     # -- init the env
     # ------------------------------
-    import os
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(TrainElasticFaceParams.gpu_id)
     prepareEnv()
     # ------------------------------
     # -- init src train params
@@ -490,9 +467,17 @@ def trainElasticFaceMain():
     print("-------------------------------------")
     # load archive
     archive = torch.load(params.model_ckp_path)
+    print(f"archive:{archive.keys()}")
+
+    # loss_func_module = archive["elasticfaceplusarc_module"]
+    # archive[params.loss_fuc_type] = loss_func_module
+    # archive.pop("elasticfaceplusarc_module")
+    # print(f"archive:{archive.keys()}")
+    # torch.save(archive, params.model_ckp_path)
+
     # 加载进模型
     cls_model.load_state_dict(archive["cls_model"])
-    elasticfaceplusarc_loss_func.load_state_dict(archive["elasticfaceplusarc_module"])
+    elasticfaceplusarc_loss_func.load_state_dict(archive[params.loss_fuc_type])
     # setup mode
     cls_model.eval()
     elasticfaceplusarc_loss_func.eval()
