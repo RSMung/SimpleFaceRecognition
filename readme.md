@@ -8,11 +8,11 @@
 Implementing face recognition algorithms on CIFAR-100 and CIFAR-10 dataset
 
 - Motivation
-I find out that popular face datasets in papers have many identities and massive images.
+  - I find out that popular face datasets in papers have many identities and massive images.
 Furthermore, some pre-processing procedures are required before we utilize them to train our models or implement our algorithms.
 
 - My Targets
-I want to have a simple impression about their performance. Then I decided to implement them on CIFAR-100 and CIFAR-10 dataset.
+  - I want to have a simple impression about their performance. Then I decided to implement them on CIFAR-100 and CIFAR-10 dataset.
 
 ### 2 Contents
 
@@ -64,7 +64,7 @@ Uniface: Unified cross-entropy loss for deep face recognition
 [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT) 
 
 ```RSMung
-@Misc{transferlearning.xyz,
+@Misc{simple_face_recognition,
 howpublished = {\url{https://github.com/RSMung/SimpleFaceRecognition}},   
 title = {Implementing face recognition algorithms on CIFAR-100 and CIFAR-10 dataset},  
 author = {RSMung}  
