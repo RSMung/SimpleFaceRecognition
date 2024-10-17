@@ -1,7 +1,6 @@
 <div align="center">
 
-## 简体中文 | [English](readme.md)
-
+## [English](readme.md) | :point_right: 简体中文
 </div>
 
 # 1 在CIFAR-100数据集上简单地复现人脸识别算法
@@ -16,7 +15,6 @@ ArcFace: Additive Angular Margin Loss for Deep Face Recognition
 
 ArcFace 在特征与最后一层FC的权重的夹角上添加margin使得类内聚合、类间分离。
 
-ArcFace在MNIST, CIFAR10, CIFAR100数据集上的性能均不如常规分类器方法
 
 - (2) ElasticFace (CVPRW2022)
 
