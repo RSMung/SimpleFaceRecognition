@@ -11,12 +11,14 @@ from ArcFace.train_arcface import trainArcFaceMain
 from ElasticFace.train_elasticface import trainElasticFaceMain
 from Softmax.train_softmax import trainSoftmaxMain
 from UniFace.train_uniface import trainUniFaceMain
+from TripletLoss.train_triplet_loss import trainTripletLossMain
 
 
 flag1 = "trainArcFaceMain"
 flag2 = "trainSoftmaxMain"
 flag3 = "trainElasticFaceMain"
 flag4 = "trainUniFaceMain"
+flag5 = "trainTripletLossMain"
 
 
 
@@ -25,7 +27,8 @@ flag4 = "trainUniFaceMain"
 # flag = flag1   # arcface
 # flag = flag2   # softmax
 # flag = flag3   # elasticface
-flag = flag4   # uniface
+# flag = flag4   # uniface
+flag = flag5   # trainTripletLossMain
 
 
 
@@ -37,5 +40,7 @@ elif flag == flag3:
     trainElasticFaceMain()
 elif flag == flag4:
     trainUniFaceMain()
+elif flag == flag5:
+    trainTripletLossMain()
 else:
     raise RuntimeError(f"flag:{flag} is invalid!")

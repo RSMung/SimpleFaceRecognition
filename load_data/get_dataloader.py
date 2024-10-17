@@ -33,6 +33,21 @@ def build_dataloader(phase, dataset, batch_size):
     return data_dataloader
 
 
+def getDataset(
+        dataset_name, phase, img_size, batch_size, 
+        proportion=None, norm_type="n1"
+    ):
+    if dataset_name == "mnist":
+        d = getMnistDataset(phase, img_size, norm_type)
+    elif dataset_name == "cifar100":
+        d = getCIFAR100Dataset(phase, img_size, norm_type)
+    elif dataset_name == "cifar10":
+        d = getCIFAR10Dataset(phase, img_size, norm_type)
+    else:
+        raise RuntimeError(f"dataset_name: {dataset_name} is invalid")
+    return d
+
+
 def getDataloader(
         dataset_name, phase, img_size, batch_size, 
         proportion=None, norm_type="n1"
@@ -52,17 +67,10 @@ def getDataloader(
     Returns:
         Dataloader
     """
-    # if "mnist" in dataset_name:
-    #     print()
-    # else:
-    #     raise RuntimeError(f"dataset_name:{dataset_name} is invalid!")
-    if dataset_name == "mnist":
-        d = getMnistDataset(phase, img_size, norm_type)
-    elif dataset_name == "cifar100":
-        d = getCIFAR100Dataset(phase, img_size, norm_type)
-    elif dataset_name == "cifar10":
-        d = getCIFAR10Dataset(phase, img_size, norm_type)
-    else:
-        raise RuntimeError(f"dataset_name: {dataset_name} is invalid")
+    
+    d = getDataset(
+        dataset_name, phase, img_size, batch_size, 
+        proportion=None, norm_type="n1"
+    )
 
     return build_dataloader(phase=phase, dataset=d, batch_size=batch_size)

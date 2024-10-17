@@ -78,6 +78,10 @@ def defineModel(
         arcface_loss_func = UniFaceArcFace(
             in_features=cls_model.feats_dim, out_features=n_class, l=0.6, r=0.6)
         
+    elif backbone_type == "resnet18" and loss_fuc_type == "triplet":
+        cls_model = Resnet18()
+        arcface_loss_func = None
+        
     else:
         raise RuntimeError(f"model_name:{backbone_type} is invalid")
 
