@@ -4,6 +4,7 @@ import torch.nn as nn
 import os
 
 from ArcFace.model.arcface import ArcFaceLoss
+from CosFace.cosface import CosFaceLoss
 from ElasticFace.elasticface import ElasticArcFace
 from UniFace.uniface import UniFaceArcFace
 from global_utils import get_rootdir_path
@@ -81,9 +82,13 @@ def defineModel(
     elif backbone_type == "resnet18" and loss_fuc_type == "triplet":
         cls_model = Resnet18()
         arcface_loss_func = None
+
+    elif backbone_type == "resnet18" and loss_fuc_type == "CosFace":
+        cls_model = Resnet18()
+        arcface_loss_func = CosFaceLoss(feat_dim=cls_model.feats_dim, n_class=n_class)
         
     else:
-        raise RuntimeError(f"model_name:{backbone_type} is invalid")
+        raise RuntimeError(f"backbone_type:{backbone_type} and loss_fuc_type:{loss_fuc_type} is invalid")
 
     # load the pre-trained model weights 
     if ckp_time_stamp is not None:

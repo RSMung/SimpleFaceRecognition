@@ -20,57 +20,66 @@ Implementing face recognition algorithms on CIFAR-100 and CIFAR-10 dataset
 
 * Softmax Loss  (Deep face recognition, BMVC2015)
 
-setup as a N-ways classification problem
+  setup as a N-ways classification problem
 
 * Triplet Loss   (FaceNet CVPR2015)
 
-Facenet: A unified embedding for face recognition and clustering
+  Facenet: A unified embedding for face recognition and clustering
+
+* CosFace (CVPR 2018)
+
+  CosFace: Large Margin Cosine Loss for Deep Face Recognition
 
 * ArcFace (CVPR 2019)
 
-Arcface: Additive angular margin loss for deep face recognition
+  Arcface: Additive angular margin loss for deep face recognition
 
-Note: Adding margin to the angle of cosin similarity between features and the weights of the last fully connected layer.
+  > Note: Adding margin to the angle of cosin similarity between features and the weights of the last fully connected layer.
 
 * ElasticFace (CVPRW 2022)
 
-Elasticface: Elastic margin loss for deep face recognition
+  Elasticface: Elastic margin loss for deep face recognition
 
-Note: Changing the fixed margin value in ArcFace as sampling from gaussian distribution. The larger angles are associated with smaller margin values, and vice versa.
+  > Note: Changing the fixed margin value in ArcFace as sampling from gaussian distribution. The larger angles are associated with smaller margin values, and vice versa.
 
 * UniFace (ICCV 2023)
 
-Uniface: Unified cross-entropy loss for deep face recognition
+  Uniface: Unified cross-entropy loss for deep face recognition
 
 ### 3 Experimental Results
 
 * CIFAR100
 
-| Loss Type    | Backbone | Accuracy (%) | EER (%) |
-| ------------ | -------- | ------------ | ------- |
-| Softmax      | Resnet18 | 76.31        | 4.78    |
-| Triplet Loss | Resnet18 | 71.43        | 6.58    |
-| ArcFace      | Resnet18 | 76.03        | 7.91    |
-| ElasticFace  | Resnet18 | 76.41        | 9.9     |
-| UniFace      | Resnet18 | 74.53        | 10.94   |
+  | Loss Type    | Backbone | Accuracy (%) | EER (%) |
+  | ------------ | -------- | ------------ | ------- |
+  | Softmax      | Resnet18 | 76.31        | 4.78    |
+  | Triplet Loss | Resnet18 | 71.43        | 6.58    |
+  | CosFace      | Resnet18 | 75.64        | 5.48    |
+  | ArcFace      | Resnet18 | 76.03        | 7.91    |
+  | ElasticFace  | Resnet18 | 76.41        | 9.9     |
+  | UniFace      | Resnet18 | 74.53        | 10.94   |
 
 * CIFAR10
 
-| Loss Type    | Backbone | Accuracy (%) | EER (%) |
-| ------------ | -------- | ------------ | ------- |
-| Softmax      | Resnet18 | 93.71        | 3.25    |
-| Triplet Loss | Resnet18 | 94.01        | 2.96    |
-| ArcFace      | Resnet18 | 93.77        | 2.92    |
-| ElasticFace  | Resnet18 | 94.34        | 3.16    |
-| UniFace      | Resnet18 | 91.72        | 8.85    |
+  | Loss Type    | Backbone | Accuracy (%) | EER (%) |
+  | ------------ | -------- | ------------ | ------- |
+  | Softmax      | Resnet18 | 93.71        | 3.25    |
+  | Triplet Loss | Resnet18 | 94.01        | 2.96    |
+  | CosFace      | Resnet18 | 93.74        | 5.29    |
+  | ArcFace      | Resnet18 | 93.77        | 2.92    |
+  | ElasticFace  | Resnet18 | 94.34        | 3.16    |
+  | UniFace      | Resnet18 | 91.72        | 8.85    |
+
 
 ### 4 References
 
 - Parkhi, O., Vedaldi, A., & Zisserman, A. (2015). Deep face recognition. In BMVC 2015-Proceedings of the British Machine Vision Conference 2015. British Machine Vision Association.
 - Schroff, F., Kalenichenko, D., & Philbin, J. (2015). Facenet: A unified embedding for face recognition and clustering. In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 815-823).
+- Wang, H., Wang, Y., Zhou, Z., Ji, X., Gong, D., Zhou, J., ... & Liu, W. (2018). Cosface: Large margin cosine loss for deep face recognition. In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 5265-5274).
 - Deng, J., Guo, J., Xue, N., & Zafeiriou, S. (2019). Arcface: Additive angular margin loss for deep face recognition. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition (pp. 4690-4699).
 - Boutros, F., Damer, N., Kirchbuchner, F., & Kuijper, A. (2022). Elasticface: Elastic margin loss for deep face recognition. In Proceedings of the IEEE/CVF conference on computer vision and pattern recognition (pp. 1578-1587).
 - Zhou, J., Jia, X., Li, Q., Shen, L., & Duan, J. (2023). Uniface: Unified cross-entropy loss for deep face recognition. In Proceedings of the IEEE/CVF International Conference on Computer Vision (pp. 20730-20739).
+
 
 ### 5 Cite this repository
 
